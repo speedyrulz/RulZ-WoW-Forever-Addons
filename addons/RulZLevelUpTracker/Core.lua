@@ -36,6 +36,13 @@ local mutedChatFrames = {}
 local function NewCounter()
     return { xp = 0, seconds = 0, bonus = 0 }
 end
+ns.NewCounter = NewCounter
+
+-- A tracker holds the counters behind the four modes. The character's saved
+-- data is one, and each hunter pet has its own.
+function ns.NewTracker()
+    return { session = NewCounter(), currentLevel = NewCounter(), allTime = NewCounter(), hour = {} }
+end
 
 -- Versions before bonusFixed recorded the full pool drop as bonus, twice the
 -- true amount, which could leave a normal pace of zero.
@@ -68,6 +75,7 @@ local function InitDB()
     db.hour = db.hour or {}
     db.restedSample = db.restedSample or { base = 0, bonus = 0 }
     db.history = db.history or {}
+    db.pets = db.pets or {}
     FixDoubledBonus()
     ns.db = db
 end
@@ -77,6 +85,7 @@ end
 local function IsSecret(value)
     return issecretvalue and issecretvalue(value)
 end
+ns.IsSecret = IsSecret
 
 local function ReadXP()
     local cur, max = UnitXP("player"), UnitXPMax("player")
@@ -115,37 +124,38 @@ local function SameLevelQuestXP(level)
     return QUEST_XP[math.min(level, #QUEST_XP)]
 end
 
-local function HourBucket()
+local function HourBucket(tracker)
     local key = math.floor(time() / 60)
-    local bucket = db.hour[key]
+    local bucket = tracker.hour[key]
     if not bucket then
         bucket = NewCounter()
-        db.hour[key] = bucket
-        for k in pairs(db.hour) do
+        tracker.hour[key] = bucket
+        for k in pairs(tracker.hour) do
             if k <= key - HOUR_BUCKETS then
-                db.hour[k] = nil
+                tracker.hour[k] = nil
             end
         end
     end
     return bucket
 end
 
-local function ForEachCounter(apply)
-    apply(db.session)
-    apply(db.currentLevel)
-    apply(db.allTime)
-    apply(HourBucket())
+local function ForEachCounter(tracker, apply)
+    apply(tracker.session)
+    apply(tracker.currentLevel)
+    apply(tracker.allTime)
+    apply(HourBucket(tracker))
 end
 
-local function AddXP(amount, bonus)
-    ForEachCounter(function(counter)
+function ns.AddTrackerXP(tracker, amount, bonus)
+    bonus = bonus or 0
+    ForEachCounter(tracker, function(counter)
         counter.xp = counter.xp + amount
         counter.bonus = (counter.bonus or 0) + bonus
     end)
 end
 
-local function AddSeconds(amount)
-    ForEachCounter(function(counter)
+function ns.AddTrackerSeconds(tracker, amount)
+    ForEachCounter(tracker, function(counter)
         counter.seconds = counter.seconds + amount
     end)
 end
@@ -225,6 +235,7 @@ local function OnEnteringWorld(isLogin, isReload)
     if isLogin or isReload then
         if isLogin then
             db.session = NewCounter()
+            ns.StartPetSession()
         end
         local level = UnitLevel("player")
         if db.currentLevel.level ~= level then
@@ -269,7 +280,7 @@ local function OnXPUpdate()
 
     local bonus = TakeRestedBonus(gained)
     if gained > 0 then
-        AddXP(gained, bonus)
+        ns.AddTrackerXP(db, gained, bonus)
     end
     if wrapped then
         local finished = db.currentLevel
@@ -302,11 +313,13 @@ end
 
 -- Public API -----------------------------------------------------------------
 
-function ns.GetStats(mode)
+-- Reads the character's counters unless given another tracker.
+function ns.GetStats(mode, tracker)
+    tracker = tracker or db
     local xp, seconds, bonus = 0, 0, 0
     if mode == "hour" then
         local oldest = math.floor(time() / 60) - HOUR_BUCKETS
-        for key, bucket in pairs(db.hour) do
+        for key, bucket in pairs(tracker.hour) do
             if key > oldest then
                 xp = xp + bucket.xp
                 seconds = seconds + bucket.seconds
@@ -314,9 +327,9 @@ function ns.GetStats(mode)
             end
         end
     else
-        local counter = (mode == "session" and db.session)
-            or (mode == "level" and db.currentLevel)
-            or db.allTime
+        local counter = (mode == "session" and tracker.session)
+            or (mode == "level" and tracker.currentLevel)
+            or tracker.allTime
         xp, seconds, bonus = counter.xp, counter.seconds, counter.bonus or 0
     end
     local perSecond
@@ -361,19 +374,24 @@ function ns.SetMode(mode)
     ns.Refresh()
 end
 
-function ns.Reset(mode)
+function ns.ResetTracker(tracker, mode)
     if mode == "hour" then
-        db.hour = {}
+        tracker.hour = {}
     elseif mode == "session" then
-        db.session = NewCounter()
+        tracker.session = NewCounter()
     elseif mode == "level" then
-        local level = db.currentLevel.level
-        db.currentLevel = NewCounter()
-        db.currentLevel.level = level
-        db.currentLevel.noBackfill = true
+        local level = tracker.currentLevel.level
+        tracker.currentLevel = NewCounter()
+        tracker.currentLevel.level = level
+        tracker.currentLevel.noBackfill = true
     elseif mode == "alltime" then
-        db.allTime = NewCounter()
+        tracker.allTime = NewCounter()
     end
+end
+
+function ns.Reset(mode)
+    ns.ResetTracker(db, mode)
+    ns.ResetPets(mode)
     ns.Refresh()
 end
 
@@ -412,8 +430,9 @@ engine:SetScript("OnUpdate", function(_, elapsed)
     tickElapsed = tickElapsed + elapsed
     if tickElapsed >= 1 then
         if not IsAtMaxLevel() and not IsAFK() then
-            AddSeconds(tickElapsed)
+            ns.AddTrackerSeconds(db, tickElapsed)
         end
+        ns.UpdatePet(tickElapsed)
         tickElapsed = 0
         ns.Refresh()
     end

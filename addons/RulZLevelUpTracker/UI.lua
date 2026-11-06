@@ -16,6 +16,8 @@ local TAB_DIM_ALPHA = 0.62
 
 local PANEL_WIDTH = 240
 local PANEL_HEIGHT = 212
+local PET_SECTION_HEIGHT = 50 -- added to the panel for hunters
+local PET_SECTION_TOP = -177
 local COMPACT_WIDTH = 210
 local COMPACT_HEIGHT = 28
 local MIN_SCALE_PERCENT = 70
@@ -28,6 +30,7 @@ ns.MAX_SCALE_PERCENT = MAX_SCALE_PERCENT
 local INNER_WIDTH = PANEL_WIDTH - 24
 
 local frame, mark, barHolder, tabs, rows, etaLabel, etaValue, bar, restedBar, barText, minimapButton
+local petBar, petBarText, petRate, petTime -- only created for hunters
 local fullLayoutOnly = {} -- widgets hidden in compact mode
 
 local function Commas(n)
@@ -137,16 +140,21 @@ local function CreateEstimate()
     fullLayoutOnly[#fullLayoutOnly + 1] = etaValue
 end
 
-local function CreateBar()
-    barHolder = CreateFrame("Frame", nil, frame, "BackdropTemplate")
-    barHolder:SetBackdrop({
+local function NewBarHolder()
+    local holder = CreateFrame("Frame", nil, frame, "BackdropTemplate")
+    holder:SetBackdrop({
         bgFile = TOOLTIP_BG,
         edgeFile = TOOLTIP_BORDER,
         edgeSize = 10,
         insets = { left = 2, right = 2, top = 2, bottom = 2 },
     })
-    barHolder:SetBackdropColor(unpack(TRACK_COLOR))
-    barHolder:SetBackdropBorderColor(unpack(BORDER_COLOR))
+    holder:SetBackdropColor(unpack(TRACK_COLOR))
+    holder:SetBackdropBorderColor(unpack(BORDER_COLOR))
+    return holder
+end
+
+local function CreateBar()
+    barHolder = NewBarHolder()
 
     restedBar = CreateFrame("StatusBar", nil, barHolder)
     restedBar:SetPoint("TOPLEFT", 3, -3)
@@ -164,20 +172,42 @@ local function CreateBar()
     barText:SetPoint("CENTER")
 end
 
+local function NewRow(label, y)
+    local name = NewText(frame, "GameFontNormalSmall")
+    name:SetPoint("TOPLEFT", 12, y)
+    name:SetText(label)
+    local value = NewText(frame, "GameFontHighlightSmall")
+    value:SetPoint("TOPRIGHT", -12, y)
+    fullLayoutOnly[#fullLayoutOnly + 1] = name
+    fullLayoutOnly[#fullLayoutOnly + 1] = value
+    return value
+end
+
 local function CreateRows()
     rows = {}
     local labels = { "XP per hour", "XP earned", "Time tracked", "Rested XP", "Kills left", "Quests left" }
     for index, label in ipairs(labels) do
-        local y = -91 - (index - 1) * 14
-        local name = NewText(frame, "GameFontNormalSmall")
-        name:SetPoint("TOPLEFT", 12, y)
-        name:SetText(label)
-        local value = NewText(frame, "GameFontHighlightSmall")
-        value:SetPoint("TOPRIGHT", -12, y)
-        rows[index] = value
-        fullLayoutOnly[#fullLayoutOnly + 1] = name
-        fullLayoutOnly[#fullLayoutOnly + 1] = value
+        rows[index] = NewRow(label, -91 - (index - 1) * 14)
     end
+end
+
+local function CreatePetSection()
+    local holder = NewBarHolder()
+    holder:SetSize(INNER_WIDTH, 16)
+    holder:SetPoint("TOP", 0, PET_SECTION_TOP)
+    fullLayoutOnly[#fullLayoutOnly + 1] = holder
+
+    petBar = CreateFrame("StatusBar", nil, holder)
+    petBar:SetPoint("TOPLEFT", 3, -3)
+    petBar:SetPoint("BOTTOMRIGHT", -3, 3)
+    petBar:SetStatusBarTexture(BAR_TEXTURE)
+    petBar:SetStatusBarColor(unpack(BAR_COLOR))
+
+    petBarText = NewText(petBar, "GameFontHighlightSmall")
+    petBarText:SetPoint("CENTER")
+
+    petRate = NewRow("Pet XP per hour", PET_SECTION_TOP - 20)
+    petTime = NewRow("Pet time to level", PET_SECTION_TOP - 34)
 end
 
 local function CreateTabs()
@@ -211,7 +241,7 @@ local function ApplyLayout()
         barHolder:SetSize(COMPACT_WIDTH - 34, 18)
         barHolder:SetPoint("LEFT", mark, "RIGHT", 4, 0)
     else
-        frame:SetSize(PANEL_WIDTH, PANEL_HEIGHT)
+        frame:SetSize(PANEL_WIDTH, PANEL_HEIGHT + (petBar and PET_SECTION_HEIGHT or 0))
         mark:SetSize(20, 20)
         mark:SetPoint("TOPLEFT", 10, -8)
         barHolder:SetSize(INNER_WIDTH, 18)
@@ -219,11 +249,22 @@ local function ApplyLayout()
     end
 end
 
+local function PetTimeText(pet)
+    if not pet.canLevel then
+        return "At your level"
+    end
+    return pet.secondsLeft and FormatTime(pet.secondsLeft) or "Gathering data"
+end
+
 local function ShowCompactTooltip(self)
     if not ns.db.compact then return end
     GameTooltip:SetOwner(self, "ANCHOR_BOTTOM")
     GameTooltip:SetText("RulZ Level Up Tracker")
     GameTooltip:AddLine("Tracking: " .. ModeLabel(), 1, 1, 1)
+    local pet = ns.IsHunter() and ns.GetPetStatus(ns.db.mode)
+    if pet then
+        GameTooltip:AddLine(string.format("%s, level %d: %s", pet.name, pet.level, PetTimeText(pet)), 1, 1, 1)
+    end
     GameTooltip:AddLine("Right-click: next tracking mode", 1, 1, 1)
     GameTooltip:Show()
 end
@@ -294,6 +335,9 @@ local function CreatePanel()
     CreateEstimate()
     CreateBar()
     CreateRows()
+    if ns.IsHunter() then
+        CreatePetSection()
+    end
     CreateTabs()
     ApplyLayout()
     frame:SetShown(ns.db.shown)
@@ -373,10 +417,30 @@ local function RefreshTabs()
     end
 end
 
+local function RefreshPet()
+    if not petBar then return end
+    local pet = ns.GetPetStatus(ns.db.mode)
+    if not pet then
+        petBar:SetMinMaxValues(0, 1)
+        petBar:SetValue(0)
+        petBarText:SetText("No pet out")
+        petRate:SetText("-")
+        petTime:SetText("-")
+        return
+    end
+    petBar:SetMinMaxValues(0, pet.max)
+    petBar:SetValue(pet.cur)
+    petBarText:SetText(string.format("%s, level %d (%d%%)", pet.name, pet.level,
+        math.floor(pet.cur / pet.max * 100)))
+    petRate:SetText(pet.perSecond and Commas(pet.perSecond * 3600) or "-")
+    petTime:SetText(PetTimeText(pet))
+end
+
 function ns.Refresh()
     if not frame or not frame:IsShown() then return end
 
     RefreshTabs()
+    RefreshPet()
 
     local cur, max, level, atMax = ns.GetProgress()
     local xp, seconds, perSecond = ns.GetStats(ns.db.mode)
