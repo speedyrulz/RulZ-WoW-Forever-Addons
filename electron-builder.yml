@@ -1,0 +1,21 @@
+appId: com.rulz.wowforeveraddons
+productName: RulZ WoW Forever Addons
+directories:
+  buildResources: build
+  output: dist
+files:
+  - out/**
+  - package.json
+  - '!**/*.map'
+extraResources:
+  - from: addons
+    to: addons
+  - from: catalog
+    to: catalog
+win:
+  icon: build/icon.ico
+  target:
+    - target: portable
+      arch: [x64]
+  artifactName: RulZ-WoW-Forever-Addons-Installer-${version}.${ext}
+npmRebuild: false

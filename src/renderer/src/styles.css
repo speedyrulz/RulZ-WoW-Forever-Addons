@@ -1,0 +1,107 @@
+@import 'tailwindcss' source('./');
+
+/* Black and red, matching RulZ AI Tools Suite and the RulZ logo (its red is #ED000D). */
+:root {
+  --bg: #050505;
+  --panel: #0c0c0e;
+  --panel-2: #141417;
+  --hover: #1c1c21;
+  --border: #232328;
+  --border-strong: #34343b;
+  --text: #f2f2f3;
+  --muted: #a3a3ab;
+  --faint: #6c6c75;
+  --accent: #ed000d;
+  --accent-hover: #ff2633;
+  --accent-soft: rgb(237 0 13 / 0.13);
+  --accent-text: #ff6b72;
+  --warn: #fbbf24;
+  --warn-text: #fcd679;
+  --ok: #4ade80;
+  --danger-text: #ff8a8e;
+  --danger-bg: #3a0c0f;
+  --danger-border: #6b1418;
+  --body: #d4d4d8;
+  color-scheme: dark;
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-panel: var(--panel);
+  --color-panel-2: var(--panel-2);
+  --color-hover: var(--hover);
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+  --color-text: var(--text);
+  --color-muted: var(--muted);
+  --color-faint: var(--faint);
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-soft: var(--accent-soft);
+  --color-accent-text: var(--accent-text);
+  --color-warn: var(--warn);
+  --color-warn-text: var(--warn-text);
+  --color-ok: var(--ok);
+  --color-danger-text: var(--danger-text);
+  --color-danger-bg: var(--danger-bg);
+  --color-danger-border: var(--danger-border);
+  --color-body: var(--body);
+  --font-sans: 'Segoe UI Variable Text', 'Segoe UI', system-ui, sans-serif;
+  --font-display: 'Segoe UI Variable Display', 'Segoe UI', system-ui, sans-serif;
+  --font-mono: 'Cascadia Code', 'Cascadia Mono', Consolas, ui-monospace, monospace;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-sans);
+  font-size: 14px;
+  -webkit-font-smoothing: antialiased;
+  overflow: hidden;
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-strong) transparent;
+}
+
+@layer base {
+  button,
+  select {
+    font: inherit;
+    color: inherit;
+  }
+  :focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+}
+
+.drag {
+  -webkit-app-region: drag;
+}
+
+.hero {
+  background:
+    radial-gradient(ellipse 60% 120% at 0% 0%, rgb(237 0 13 / 0.22), transparent 60%),
+    radial-gradient(ellipse 50% 90% at 100% 100%, rgb(237 0 13 / 0.1), transparent 60%),
+    linear-gradient(180deg, #0d0d10, #070708);
+}
+
+/* Diagonal slashes echoing the strokes of the R mark. */
+.hero-slashes {
+  background: repeating-linear-gradient(
+    -48deg,
+    transparent 0 46px,
+    rgb(237 0 13 / 0.07) 46px 58px,
+    transparent 58px 120px
+  );
+  mask-image: linear-gradient(90deg, transparent 30%, black 75%);
+}

@@ -1,0 +1,11 @@
+## Interface: 16001
+## Title: |cffed0a14RulZ|r Level Up Tracker
+## Notes: Estimates the time to your next level from the rate you earn XP.
+## Author: RulZ
+## Version: 1.1.0
+## IconTexture: Interface\AddOns\RulZLevelUpTracker\Media\RulZIcon
+## SavedVariablesPerCharacter: RulZLevelUpTrackerCharDB
+
+Core.lua
+UI.lua
+Options.lua

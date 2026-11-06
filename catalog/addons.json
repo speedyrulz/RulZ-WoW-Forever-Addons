@@ -1,0 +1,15 @@
+[
+  {
+    "id": "RulZLevelUpTracker",
+    "name": "RulZ Level Up Tracker",
+    "tagline": "See how long it will take to reach your next level.",
+    "description": "Watches the rate you earn XP and estimates the time to your next level. Switch the estimate between the past hour, this session, your current level and all time.",
+    "features": [
+      "Time to level and an estimated finish time",
+      "Allows for rested XP and pauses while you're AFK",
+      "Same-level kills and quests left to level, counted separately",
+      "Level-up summaries and a history of every level",
+      "Compact bar mode, lock, size slider and an in-game settings page"
+    ]
+  }
+]
