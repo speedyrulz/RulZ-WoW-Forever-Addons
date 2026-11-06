@@ -13,7 +13,9 @@ one click.
 
 ## Installing addons
 
-1. Run `RulZ-WoW-Forever-Addons-Installer-<version>.exe`. There's nothing to set up; it runs as it is.
+1. Download `RulZ-WoW-Forever-Addons-Installer-<version>.exe` from the
+   [latest release](https://github.com/speedyrulz/RulZ-WoW-Forever-Addons/releases/latest) and run it. There's nothing
+   to set up; it runs as it is.
 2. Check the **WoW Forever folder**. The installer scans for it. Use **Change folder** if it found the wrong one or
    none at all. You can pick either your `World of Warcraft` folder or the `_forever_` folder inside it.
 3. Press **Install** on the addon you want.
@@ -51,6 +53,11 @@ run.bat
    shown in the installer.
 2. Add an entry to [catalog/addons.json](catalog/addons.json). Its `id` is the folder name.
 3. Add a square PNG icon at `catalog/icons/<id>.png`.
+
+## Releases
+
+Every push to `main` publishes a release with the installer attached. It uses the version in `package.json`, or the
+next patch version if that one already has a release. Raise `package.json` only for a bigger jump.
 
 ## License
 
