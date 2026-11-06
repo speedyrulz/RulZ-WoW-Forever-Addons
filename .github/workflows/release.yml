@@ -1,19 +1,27 @@
 name: Release
 
-# Builds the installer and attaches it to a GitHub Release whenever a version tag is pushed:
-#   git tag v1.0.0 && git push origin v1.0.0
+# Every push to main publishes a release with the installer attached.
+# It uses the version in package.json. If that version already has a release, it uses the next patch
+# version instead, so raise package.json only for a bigger jump.
 on:
   push:
-    tags: ['v*']
+    branches: [main]
 
 permissions:
   contents: write
+
+# Releases run one at a time, so two quick pushes can't pick the same version.
+concurrency:
+  group: release
+  cancel-in-progress: false
 
 jobs:
   installer:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
           node-version: 24
@@ -21,6 +29,17 @@ jobs:
       - run: npm ci --no-audit --no-fund
       - run: npm run typecheck
       - run: npm test
+      - name: Pick the version
+        id: version
+        shell: pwsh
+        run: |
+          $version = (Get-Content package.json -Raw | ConvertFrom-Json).version
+          if (git tag --list "v$version") {
+            $latest = [version]((git tag --list 'v*' --sort=-v:refname | Select-Object -First 1).Substring(1))
+            $version = "$($latest.Major).$($latest.Minor).$($latest.Build + 1)"
+          }
+          npm version $version --no-git-tag-version --allow-same-version
+          "version=$version" >> $env:GITHUB_OUTPUT
       - name: Build installer
         run: npm run build:win -- --publish never
         env:
@@ -28,5 +47,7 @@ jobs:
       - name: Create release
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: v${{ steps.version.outputs.version }}
+          name: v${{ steps.version.outputs.version }}
           files: dist/*.exe
           generate_release_notes: true
