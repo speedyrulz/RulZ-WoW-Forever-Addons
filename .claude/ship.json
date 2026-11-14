@@ -1,0 +1,82 @@
+{
+  "configVersion": 1,
+  "name": "RulZ WoW Forever Addons",
+  "approval": {
+    "default": "ask-once",
+    "source": "Memory release-every-update (2026-11-06): \"Always create a release when pushing an update\" (the user asked so the public repo always has a current installer). Memory update-wiki-every-release (2026-11-06): update the wiki whenever an update is pushed. Both start from 'when an update is pushed'; neither authorizes the push itself, so one yes covers the plan."
+  },
+  "checks": [
+    { "run": "npm run typecheck", "shell": "powershell" },
+    { "run": "npm test", "shell": "powershell" }
+  ],
+  "neverStage": ["AGENTS.md", "CLAUDE.md"],
+  "delivery": {
+    "mode": "direct-push",
+    "base": "main",
+    "ci": "wait",
+    "commitStyle": "Plain sentence naming the addon and its new version, e.g. \"Add hunter pet XP tracking to Level Up Tracker 1.2.0\"."
+  },
+  "version": { "source": "none" },
+  "tag": { "create": "none" },
+  "release": {
+    "mode": "ci-on-push",
+    "workflow": "release.yml",
+    "latest": true,
+    "expectAssets": ["RulZ-WoW-Forever-Addons-Installer-*.exe"]
+  },
+  "wiki": {
+    "enabled": true,
+    "when": "every-ship",
+    "url": "https://github.com/speedyrulz/RulZ-WoW-Forever-Addons.wiki.git",
+    "branch": "master",
+    "clone": "scratchpad",
+    "public": true,
+    "pages": [
+      { "paths": ["addons/**", "catalog/**"], "pages": ["Home.md", "_Sidebar.md"] },
+      { "paths": ["src/**", "package.json", "electron-builder.yml", ".github/**"], "pages": ["Developer-Guide.md"] }
+    ],
+    "review": ["Home.md", "_Sidebar.md", "Developer-Guide.md"],
+    "order": "after-release",
+    "rules": "Change the pages the update affects: features, commands, buttons, the version examples in Developer-Guide.md; a new addon goes on Home.md and _Sidebar.md. Check that the live pages load after pushing."
+  },
+  "pulls": { "mainCheckout": true },
+  "extraSteps": [],
+  "components": [
+    {
+      "id": "installer",
+      "name": "RulZ WoW Forever Addons installer",
+      "paths": [
+        "src/**",
+        "catalog/**",
+        "build/**",
+        "tests/**",
+        "package.json",
+        "package-lock.json",
+        "electron-builder.yml",
+        "electron.vite.config.ts",
+        "tsconfig.json",
+        "tsconfig.node.json",
+        "tsconfig.web.json",
+        "install.bat",
+        "run.bat",
+        ".github/workflows/*"
+      ],
+      "version": { "source": "none" }
+    },
+    {
+      "id": "level-up-tracker",
+      "name": "RulZ Level Up Tracker",
+      "paths": ["addons/RulZLevelUpTracker/**"],
+      "version": {
+        "source": "files",
+        "bump": "feature-minor",
+        "when": "in-commit",
+        "files": [
+          { "path": "addons/RulZLevelUpTracker/RulZLevelUpTracker.toc", "regex": "^## Version:\\s*(\\S+)" }
+        ]
+      },
+      "tag": { "pattern": "{id}-v{version}", "create": "none" }
+    }
+  ],
+  "notes": "Every push to main publishes a release through release.yml: never tag by hand. The installer version comes from package.json, and when that version already has a release CI uses the next patch, so raise package.json only for a bigger jump. Bump an addon's '## Version:' when the addon changes, so the installer offers Update (each addon is a component here; add one per new addon, plus its catalog/addons.json entry). After pushing, confirm the release appeared with the installer .exe attached. Open to-do from 2026-11-06: the README has no wiki link yet; add one with the next push to main. The level-up-tracker tag pattern only keeps addon versions from colliding with installer tags; no addon tag is created."
+}
