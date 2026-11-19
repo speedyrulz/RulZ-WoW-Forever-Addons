@@ -12,5 +12,19 @@
       "Level-up summaries and a history of every level",
       "Compact bar mode, lock, size slider and an in-game settings page"
     ]
+  },
+  {
+    "id": "RulZEquipmentTracker",
+    "name": "RulZ Equipment Tracker",
+    "tagline": "See the item level and stats in every gear slot, and which to upgrade next.",
+    "description": "Lists every slot on your character with the item's level, required level and stats. It averages the item level of what you wear and marks the slots most worth upgrading, starting with any that are empty.",
+    "features": [
+      "One row per slot with the item, its quality, item level and required level",
+      "Stats and Equip effects in a short line, with the full tooltip on hover",
+      "Average item level and a count of empty slots",
+      "Upgrade marks on empty slots and your three lowest item levels",
+      "Sort by slot order or lowest item level first",
+      "Opens from /rulzgear, a minimap button or a button on the character sheet"
+    ]
   }
 ]

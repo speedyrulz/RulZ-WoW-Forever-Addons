@@ -1,0 +1,11 @@
+## Interface: 16001
+## Title: |cffed0a14RulZ|r Equipment Tracker
+## Notes: Shows the item level and stats of every gear slot, and which to upgrade next.
+## Author: RulZ
+## Version: 1.0.0
+## IconTexture: Interface\AddOns\RulZEquipmentTracker\Media\RulZIcon
+## SavedVariablesPerCharacter: RulZEquipmentTrackerCharDB
+
+Core.lua
+UI.lua
+Options.lua

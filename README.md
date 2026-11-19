@@ -10,6 +10,9 @@ one click.
 | Addon | What it does |
 | --- | --- |
 | [RulZ Level Up Tracker](addons/RulZLevelUpTracker) | Estimates the time to your next level from the rate you earn XP, based on the past hour, this session, your current level or all time |
+| [RulZ Equipment Tracker](addons/RulZEquipmentTracker) | Shows the item level, required level and stats in every gear slot, and marks the slots to upgrade next |
+
+Full guides for each addon are on the [wiki](https://github.com/speedyrulz/RulZ-WoW-Forever-Addons/wiki).
 
 ## Installing addons
 

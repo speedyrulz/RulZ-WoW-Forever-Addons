@@ -76,7 +76,21 @@
         ]
       },
       "tag": { "pattern": "{id}-v{version}", "create": "none" }
+    },
+    {
+      "id": "equipment-tracker",
+      "name": "RulZ Equipment Tracker",
+      "paths": ["addons/RulZEquipmentTracker/**"],
+      "version": {
+        "source": "files",
+        "bump": "feature-minor",
+        "when": "in-commit",
+        "files": [
+          { "path": "addons/RulZEquipmentTracker/RulZEquipmentTracker.toc", "regex": "^## Version:\\s*(\\S+)" }
+        ]
+      },
+      "tag": { "pattern": "{id}-v{version}", "create": "none" }
     }
   ],
-  "notes": "Every push to main publishes a release through release.yml: never tag by hand. The installer version comes from package.json, and when that version already has a release CI uses the next patch, so raise package.json only for a bigger jump. Bump an addon's '## Version:' when the addon changes, so the installer offers Update (each addon is a component here; add one per new addon, plus its catalog/addons.json entry). After pushing, confirm the release appeared with the installer .exe attached. Open to-do from 2026-11-06: the README has no wiki link yet; add one with the next push to main. The level-up-tracker tag pattern only keeps addon versions from colliding with installer tags; no addon tag is created."
+  "notes": "Every push to main publishes a release through release.yml: never tag by hand. The installer version comes from package.json, and when that version already has a release CI uses the next patch, so raise package.json only for a bigger jump. Bump an addon's '## Version:' when the addon changes, so the installer offers Update (each addon is a component here; add one per new addon, plus its catalog/addons.json entry). After pushing, confirm the release appeared with the installer .exe attached. The level-up-tracker tag pattern only keeps addon versions from colliding with installer tags; no addon tag is created."
 }
