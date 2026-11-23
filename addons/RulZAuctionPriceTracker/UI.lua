@@ -192,13 +192,13 @@ local function UpdateScan()
     local status = ns.GetScanStatus() or {}
     if auctionButton then
         auctionButton:SetText(ScanLabel(status))
-        auctionButton:SetEnabled(status.canScan == true)
+        auctionButton:SetEnabled(status.state == "idle")
     end
     if frame and frame:IsShown() then
         local summary = ns.GetSummary() or {}
         footer:SetText((status.text or "Ready") .. "  |  " .. tostring(summary.items or 0) .. " items  |  Last full scan: "
             .. (summary.lastFull and ns.FormatAge(summary.lastFull) or "never"))
-        scanButton:SetEnabled(status.canScan == true)
+        scanButton:SetEnabled(status.state == "idle")
         scanButton:SetText(ScanLabel(status))
         if dirty and not searchDelay and status.state == "idle" then RefreshItems() end
     end
@@ -462,6 +462,8 @@ SlashCmdList["RULZAUCTIONPRICETRACKER"] = function(input)
         ns.SetMinimapShown(shown)
         print(ns.PREFIX .. (shown and "minimap button shown." or "minimap button hidden."))
     elseif command == "reset" then ns.db.position = nil; PlaceFrame(); print(ns.PREFIX .. "window moved back to its starting place.")
+    elseif command == "status" then
+        for _, line in ipairs(ns.GetDiagnostics()) do print(ns.PREFIX .. line) end
     elseif command == "config" then ns.OpenOptions()
-    else print(ns.PREFIX .. "/rah toggles the window. Also: scan, minimap [show|hide], reset, config, help.") end
+    else print(ns.PREFIX .. "/rah toggles the window. Also: scan, status, minimap [show|hide], reset, config, help.") end
 end

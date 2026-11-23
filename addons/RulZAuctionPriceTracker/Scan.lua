@@ -8,6 +8,7 @@ local REQUEST_COOLDOWN = 900       -- the server allows one ReplicateItems about
 local NO_ANSWER_TIMEOUT = 30       -- seconds without an answer
 local RETRY_AFTER_TIMEOUT = 60     -- seconds before another try after no answer
 local SETTLE_SECONDS = 2           -- the list must keep its size this long
+local QUIET_SECONDS = 10           -- no event, but the list stopped growing this long ago
 local SETTLE_MAX = 120             -- ...but we read anyway after this long
 local FRAME_BUDGET_MS = 8          -- scan work per frame
 local PASSIVE_BUDGET_MS = 3        -- passive recording work per frame
@@ -122,8 +123,30 @@ end
 
 -- Status ---------------------------------------------------------------------
 
+-- The game's own window counts too, in case an event was missed.
+local function AuctionFrameShown()
+    local window = AuctionHouseFrame
+    if type(window) ~= "table" or not window.IsShown then return false end
+    local ok, shown = pcall(window.IsShown, window)
+    return ok and not IsSecret(shown) and shown == true
+end
+
 function ns.IsAuctionOpen()
-    return auctionOpen
+    return auctionOpen or AuctionFrameShown()
+end
+
+-- What the scan button depends on, for /rah status.
+function ns.GetDiagnostics()
+    local api = Api()
+    return {
+        "auction house: " .. (ns.IsAuctionOpen() and "open" or "closed")
+            .. " (event " .. (auctionOpen and "yes" or "no")
+            .. ", window " .. (AuctionFrameShown() and "yes" or "no") .. ")",
+        "realm: " .. tostring(ns.GetScope() or "unknown"),
+        "full scan function: " .. ((api and api.ReplicateItems) and "found" or "missing"),
+        "scan: " .. scan.state .. ", next scan in " .. CooldownLeft() .. " s, "
+            .. NumReplicate() .. " auctions in the list",
+    }
 end
 
 function ns.GetScanStatus()
@@ -132,7 +155,7 @@ function ns.GetScanStatus()
     local progress, text = 0, ""
     if state == STATE_IDLE then
         cooldown = CooldownLeft()
-        if not auctionOpen then
+        if not ns.IsAuctionOpen() then
             text = "Open the auction house to scan."
         elseif cooldown > 0 then
             text = "Next full scan in " .. Duration(cooldown) .. "."
@@ -140,7 +163,7 @@ function ns.GetScanStatus()
             text = "Ready to scan."
         end
     elseif state == STATE_WAITING then
-        if scan.answered then
+        if scan.answered or scan.growing then
             text = "Receiving auctions (" .. (scan.lastCount or 0) .. ")..."
         else
             text = "Waiting for the auction house..."
@@ -160,7 +183,7 @@ function ns.GetScanStatus()
         progress = READ_SHARE + (1 - READ_SHARE) * share
         text = "Saving prices " .. floor(100 * share) .. "%"
     end
-    local canScan = state == STATE_IDLE and auctionOpen and cooldown <= 0
+    local canScan = state == STATE_IDLE and ns.IsAuctionOpen() and cooldown <= 0
         and ns.root ~= nil and ns.GetScope() ~= nil
         and Api() ~= nil and Api().ReplicateItems ~= nil
     return {
@@ -421,7 +444,15 @@ end
 
 local function StepWaiting(now)
     if not scan.answered then
-        if now - scan.startedAt >= NO_ANSWER_TIMEOUT then
+        -- The list can grow for a minute before the event comes, so a change in
+        -- its size counts as an answer too.
+        local count = NumReplicate()
+        if count ~= scan.lastCount then
+            scan.lastCount, scan.changedAt = count, now
+            scan.growing = count > 0
+        elseif scan.growing then
+            if now - scan.changedAt >= QUIET_SECONDS then scan.answered = true end
+        elseif now - scan.changedAt >= NO_ANSWER_TIMEOUT then
             -- The server ignored the request, so it didn't use up the allowance.
             if ns.root then ns.root.lastRequest = previousRequest end
             retryNotBefore = now + RETRY_AFTER_TIMEOUT
@@ -436,7 +467,8 @@ local function StepWaiting(now)
         scan.lastCount = count
         scan.changedAt = now
         if count == 0 then
-            Finish("Scan stopped: the auction list was cleared. Nothing was saved.")
+            -- The old list was cleared for the new one; keep waiting for that.
+            scan.answered, scan.growing = false, false
         end
         return
     end
@@ -469,7 +501,7 @@ end
 
 function ns.StartFullScan()
     if scan.state ~= STATE_IDLE then return false, "A scan is already running." end
-    if not auctionOpen then return false, "Open the auction house first." end
+    if not ns.IsAuctionOpen() then return false, "Open the auction house first." end
     local api = Api()
     if not (api and api.ReplicateItems) then return false, "This game client has no full scan." end
     if not ns.root or not ns.GetScope() then return false, "The realm isn't known yet. Try again in a moment." end
@@ -485,7 +517,8 @@ function ns.StartFullScan()
     scan.state = STATE_WAITING
     scan.startedAt = Seconds()
     scan.answered = false
-    scan.lastCount = 0
+    scan.lastCount = NumReplicate()   -- may still be the list of an earlier scan
+    scan.growing = false
     scan.changedAt = scan.startedAt
     ns.Fire("SCAN")
     UpdateTicking()

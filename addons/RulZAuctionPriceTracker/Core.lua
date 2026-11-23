@@ -200,6 +200,12 @@ local function OnAuctionClosed()
     ns.Fire("AUCTION", false)
 end
 
+local function IsAuctioneer(interaction)
+    local kinds = Enum and Enum.PlayerInteractionType
+    return kinds and kinds.Auctioneer ~= nil and not IsSecret(interaction)
+        and interaction == kinds.Auctioneer
+end
+
 local engine = CreateFrame("Frame")
 engine:RegisterEvent("ADDON_LOADED")
 engine:SetScript("OnEvent", function(self, event, ...)
@@ -210,6 +216,9 @@ engine:SetScript("OnEvent", function(self, event, ...)
             self:RegisterEvent("AUCTION_HOUSE_SHOW")
             self:RegisterEvent("AUCTION_HOUSE_CLOSED")
             self:RegisterEvent("PLAYER_ENTERING_WORLD")
+            -- The newer way the game says that a window opened at an auctioneer.
+            pcall(self.RegisterEvent, self, "PLAYER_INTERACTION_MANAGER_FRAME_SHOW")
+            pcall(self.RegisterEvent, self, "PLAYER_INTERACTION_MANAGER_FRAME_HIDE")
             SafeCall(ns.CreateUI)
             SafeCall(ns.CreateOptions) -- last, so a settings error can't stop the window
         end
@@ -221,6 +230,10 @@ engine:SetScript("OnEvent", function(self, event, ...)
         OnAuctionShow()
     elseif event == "AUCTION_HOUSE_CLOSED" then
         OnAuctionClosed()
+    elseif event == "PLAYER_INTERACTION_MANAGER_FRAME_SHOW" then
+        if IsAuctioneer(...) then OnAuctionShow() end
+    elseif event == "PLAYER_INTERACTION_MANAGER_FRAME_HIDE" then
+        if IsAuctioneer(...) then OnAuctionClosed() end
     end
 end)
 

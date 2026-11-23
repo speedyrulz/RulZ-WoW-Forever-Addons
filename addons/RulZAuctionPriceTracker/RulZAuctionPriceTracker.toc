@@ -2,7 +2,7 @@
 ## Title: |cffed0a14RulZ|r Auction and Price Tracker
 ## Notes: Scans the auction house and shows remembered prices on item tooltips.
 ## Author: RulZ
-## Version: 1.0.0
+## Version: 1.0.1
 ## IconTexture: Interface\AddOns\RulZAuctionPriceTracker\Media\RulZIcon
 ## SavedVariables: RulZAuctionPriceTrackerDB
 
