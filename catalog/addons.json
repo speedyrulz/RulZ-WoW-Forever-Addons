@@ -26,5 +26,19 @@
       "Sort by slot order or lowest item level first",
       "Opens from /rulzgear, a minimap button or a button on the character sheet"
     ]
+  },
+  {
+    "id": "RulZAuctionPriceTracker",
+    "name": "RulZ Auction and Price Tracker",
+    "tagline": "Scan the auction house and see remembered prices on every item tooltip.",
+    "description": "Records auction house prices from a full scan or while you browse and search, and shows the lowest buyout, market price and vendor price on item tooltips. Keeps 30 days of daily prices per item, which you can search and view in its own window.",
+    "features": [
+      "Lowest buyout with its age, market price and vendor price on tooltips, with stack totals",
+      "Full scan from a button on the auction house window",
+      "Also records prices while you browse and search",
+      "Search saved items and sort them by name, price or last seen",
+      "A chart of the last 30 days for each item",
+      "Prices are shared by all your characters of the same realm and faction"
+    ]
   }
 ]
